@@ -40,7 +40,7 @@ else
   export ROOT_NAMESPACE="${ROOT_NAMESPACE:-cf}"
   export APP_FQDN="${APP_FQDN:-apps-127-0-0-1.nip.io}"
   export KUBECONFIG="${KUBECONFIG:-${HOME}/kube/e2e.yml}"
-  export API_SERVER_ROOT="${API_SERVER_ROOT:-https://localhost}"
+  export API_SERVER_ROOT="${API_SERVER_ROOT:-https://api-127-0-0-1.nip.io}"
 
   if [ -z "${SKIP_DEPLOY:-}" ]; then
     "${SCRIPT_DIR}/deploy-on-kind.sh" e2e

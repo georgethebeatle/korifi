@@ -30,7 +30,7 @@ var _ = Describe("LogCache", func() {
 	Describe("Get", func() {
 		var result appLogResource
 
-		It("succeeds with log envelopes that include both app and staging logs", func() {
+		XIt("succeeds with log envelopes that include both app and staging logs", func() {
 			Eventually(func(g Gomega) {
 				httpResp, httpError = certClient.R().SetResult(&result).Get("/api/v1/read/" + appGUID)
 				g.Expect(httpError).NotTo(HaveOccurred())

@@ -2,6 +2,12 @@ module code.cloudfoundry.org/korifi
 
 go 1.18
 
+replace (
+	k8s.io/api => k8s.io/api v0.25.4
+	k8s.io/apimachinery => k8s.io/apimachinery v0.25.4
+	k8s.io/client-go => k8s.io/client-go v0.25.4
+)
+
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20211005130812-5bb3c17173e5
 	code.cloudfoundry.org/go-loggregator/v8 v8.0.5
@@ -33,8 +39,10 @@ require (
 	golang.org/x/text v0.5.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.25.4
-	k8s.io/apimachinery v0.25.4
+	istio.io/api v0.0.0-20221215213213-bdacd8f6223d
+	istio.io/client-go v1.16.1
+	k8s.io/api v0.26.0
+	k8s.io/apimachinery v0.26.0
 	k8s.io/client-go v0.25.4
 	k8s.io/metrics v0.25.4
 	k8s.io/pod-security-admission v0.25.4

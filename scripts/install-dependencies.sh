@@ -65,16 +65,27 @@ kubectl patch -n kpack deployment kpack-controller -p \
   '{"spec": {"template": {"spec": {"containers": [{"name": "controller", "resources": {"limits": {"cpu": "500m"}}}]}}}}'
 
 echo "********************"
-echo " Installing Contour"
+echo " Installing Istio"
 echo "********************"
 
-# Temporarily resolve an issue with contour running on Apple silicon.
-# This fix can be removed once the latest version of contour uses envoy v1.23.1 or newer
-if command -v kbld &>/dev/null; then
-  kbld --image-map-file "${DEP_DIR}/contour/kbld-image-mapping-to-fix-envoy-v1.23-bug.json" -f "$VENDOR_DIR/contour" | kubectl apply -f -
-else
-  kubectl apply -f "$VENDOR_DIR/contour"
-fi
+istioctl install --set profile=demo -y
+kubectl patch service istio-ingressgateway -n istio-system --patch-file <(
+  cat <<EOF
+spec:
+  type: NodePort
+  ports:
+  - name: http2
+    nodePort: 32000
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  - name: https
+    nodePort: 32001
+    port: 443
+    protocol: TCP
+    targetPort: 8443
+EOF
+)
 
 echo "************************************"
 echo " Installing Service Binding Runtime"

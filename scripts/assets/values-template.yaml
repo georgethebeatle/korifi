@@ -6,7 +6,7 @@ global:
 
 api:
   apiServer:
-    url: localhost
+    url: api-127-0-0-1.nip.io
   image: cloudfoundry/korifi-api:latest
   packageRepository: localregistry-docker-registry.default.svc.cluster.local:30050/packages
 

@@ -12,7 +12,7 @@ spec:
   - name: web
     port: 443
     protocol: TCP
-    targetPort: web
+    targetPort: 9000
   selector:
     app: korifi-api
   type: ClusterIP

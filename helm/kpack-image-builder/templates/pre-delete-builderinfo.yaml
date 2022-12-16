@@ -20,6 +20,7 @@ spec:
         app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+        sidecar.istio.io/inject: "false"
     spec:
       serviceAccountName: delete-builderinfo-service-account
       restartPolicy: Never

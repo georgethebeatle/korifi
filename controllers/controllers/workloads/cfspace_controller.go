@@ -103,7 +103,10 @@ func (r *CFSpaceReconciler) ReconcileResource(ctx context.Context, cfSpace *kori
 		return r.finalize(ctx, log, cfSpace)
 	}
 
-	labels := map[string]string{korifiv1alpha1.SpaceNameLabel: cfSpace.Spec.DisplayName}
+	labels := map[string]string{
+		korifiv1alpha1.SpaceNameLabel: cfSpace.Spec.DisplayName,
+		"istio-injection":             "enabled",
+	}
 	err := createOrPatchNamespace(ctx, r.client, log, cfSpace, labels)
 	if err != nil {
 		log.Error(err, "Error creating namespace")

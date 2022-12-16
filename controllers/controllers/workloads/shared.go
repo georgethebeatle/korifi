@@ -35,8 +35,8 @@ func createOrPatchNamespace(ctx context.Context, client client.Client, log logr.
 		for key, value := range labels {
 			namespace.Labels[key] = value
 		}
-		namespace.Labels[api.EnforceLevelLabel] = string(api.LevelRestricted)
-		namespace.Labels[api.AuditLevelLabel] = string(api.LevelRestricted)
+		namespace.Labels[api.EnforceLevelLabel] = string(api.LevelPrivileged)
+		namespace.Labels[api.AuditLevelLabel] = string(api.LevelPrivileged)
 
 		return nil
 	})

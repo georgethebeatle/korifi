@@ -191,8 +191,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   labels:
-    pod-security.kubernetes.io/audit: restricted
-    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/enforce: privileged
+    istio-injection: enabled
   name: $ns
 EOF
   done

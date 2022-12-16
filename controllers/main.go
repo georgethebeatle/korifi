@@ -35,9 +35,9 @@ import (
 	"code.cloudfoundry.org/korifi/controllers/webhooks/services"
 	"code.cloudfoundry.org/korifi/controllers/webhooks/workloads"
 
-	contourv1 "github.com/projectcontour/contour/apis/projectcontour/v1"
 	servicebindingv1beta1 "github.com/servicebinding/service-binding-controller/apis/v1beta1"
 	"go.uber.org/zap/zapcore"
+	networkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -60,10 +60,8 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(korifiv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(korifiv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(contourv1.AddToScheme(scheme))
-	utilruntime.Must(korifiv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(servicebindingv1beta1.AddToScheme(scheme))
+	utilruntime.Must(networkingv1alpha3.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

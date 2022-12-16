@@ -25,6 +25,8 @@ import (
 	korifiv1alpha1 "code.cloudfoundry.org/korifi/controllers/api/v1alpha1"
 	"code.cloudfoundry.org/korifi/controllers/config"
 	"code.cloudfoundry.org/korifi/tools/k8s"
+	"istio.io/api/networking/v1alpha3"
+	networkingv1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 
 	"github.com/go-logr/logr"
 	contourv1 "github.com/projectcontour/contour/apis/projectcontour/v1"
@@ -75,6 +77,8 @@ func NewCFRouteReconciler(
 
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 
+//+kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices;gateways,verbs=get;list;watch;create;update;patch;delete
+
 func (r *CFRouteReconciler) ReconcileResource(ctx context.Context, cfRoute *korifiv1alpha1.CFRoute) (ctrl.Result, error) {
 	log := r.log.WithValues("namespace", cfRoute.Namespace, "name", cfRoute.Name)
 
@@ -104,17 +108,22 @@ func (r *CFRouteReconciler) ReconcileResource(ctx context.Context, cfRoute *kori
 		return ctrl.Result{}, err
 	}
 
-	err = r.createOrPatchRouteProxy(ctx, log, cfRoute)
-	if err != nil {
-		cfRoute.Status = createInvalidRouteStatus(cfRoute, "Error creating/patching Route Proxy", "CreatePatchRouteProxy", err.Error())
+	if err = r.createOrPatchVirtualService(ctx, cfRoute, cfDomain); err != nil {
+		cfRoute.Status = createInvalidRouteStatus(cfRoute, "Error creating/patching virtual service", "CreatePatchVirtualService", err.Error())
 		return ctrl.Result{}, err
 	}
 
-	err = r.createOrPatchFQDNProxy(ctx, log, cfRoute, &cfDomain)
-	if err != nil {
-		cfRoute.Status = createInvalidRouteStatus(cfRoute, "Error creating/patching FQDN Proxy", "CreatePatchFQDNProxy", err.Error())
-		return ctrl.Result{}, err
-	}
+	// err = r.createOrPatchRouteProxy(ctx, log, cfRoute)
+	// if err != nil {
+	// 	cfRoute.Status = createInvalidRouteStatus(cfRoute, "Error creating/patching Route Proxy", "CreatePatchRouteProxy", err.Error())
+	// 	return ctrl.Result{}, err
+	// }
+
+	// err = r.createOrPatchFQDNProxy(ctx, log, cfRoute, &cfDomain)
+	// if err != nil {
+	// 	cfRoute.Status = createInvalidRouteStatus(cfRoute, "Error creating/patching FQDN Proxy", "CreatePatchFQDNProxy", err.Error())
+	// 	return ctrl.Result{}, err
+	// }
 
 	err = r.deleteOrphanedServices(ctx, log, cfRoute)
 	if err != nil {
@@ -176,18 +185,22 @@ func (r *CFRouteReconciler) finalizeCFRoute(ctx context.Context, log logr.Logger
 		return ctrl.Result{}, nil
 	}
 
-	fqdnHTTPProxy, foundFQDNProxy, err := r.getFQDNProxy(ctx, log, cfRoute.Status.FQDN, cfRoute.Namespace, false)
-	if err != nil {
+	if err := r.deleteVirtualService(ctx, cfRoute); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// Cleanup the FQDN HTTPProxy on delete
-	if foundFQDNProxy {
-		err := r.finalizeFQDNProxy(ctx, log, cfRoute.Name, fqdnHTTPProxy)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
+	// fqdnHTTPProxy, foundFQDNProxy, err := r.getFQDNProxy(ctx, log, cfRoute.Status.FQDN, cfRoute.Namespace, false)
+	// if err != nil {
+	// 	return ctrl.Result{}, err
+	// }
+
+	// // Cleanup the FQDN HTTPProxy on delete
+	// if foundFQDNProxy {
+	// 	err := r.finalizeFQDNProxy(ctx, log, cfRoute.Name, fqdnHTTPProxy)
+	// 	if err != nil {
+	// 		return ctrl.Result{}, err
+	// 	}
+	// }
 
 	if controllerutil.RemoveFinalizer(cfRoute, CFRouteFinalizerName) {
 		log.Info("finalizer removed")
@@ -255,6 +268,45 @@ func (r *CFRouteReconciler) createOrPatchServices(ctx context.Context, log logr.
 	}
 
 	return nil
+}
+
+func (r *CFRouteReconciler) createOrPatchVirtualService(ctx context.Context, cfRoute *korifiv1alpha1.CFRoute, cfDomain korifiv1alpha1.CFDomain) error {
+	fqdn := strings.ToLower(fmt.Sprintf("%s.%s", cfRoute.Spec.Host, cfDomain.Spec.Name))
+	destinations := []*v1alpha3.HTTPRouteDestination{}
+	for _, d := range cfRoute.Spec.Destinations {
+		destinations = append(destinations, &v1alpha3.HTTPRouteDestination{
+			Destination: &v1alpha3.Destination{
+				Host: generateServiceName(&d),
+				Port: &v1alpha3.PortSelector{Number: uint32(d.Port)},
+			},
+		})
+	}
+
+	virtualService := &networkingv1alpha3.VirtualService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cfRoute.Name,
+			Namespace: cfRoute.Namespace,
+		},
+	}
+
+	_, err := controllerutil.CreateOrPatch(ctx, r.client, virtualService, func() error {
+		virtualService.Spec.Hosts = []string{fqdn}
+		virtualService.Spec.Gateways = []string{"korifi/korifi-workloads-gateway"}
+		virtualService.Spec.Http = []*v1alpha3.HTTPRoute{{Route: destinations}}
+
+		return nil
+	})
+
+	return err
+}
+
+func (r *CFRouteReconciler) deleteVirtualService(ctx context.Context, cfRoute *korifiv1alpha1.CFRoute) error {
+	return client.IgnoreNotFound(r.client.Delete(ctx, &networkingv1alpha3.VirtualService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cfRoute.Name,
+			Namespace: cfRoute.Namespace,
+		},
+	}))
 }
 
 func (r *CFRouteReconciler) createOrPatchRouteProxy(ctx context.Context, log logr.Logger, cfRoute *korifiv1alpha1.CFRoute) error {

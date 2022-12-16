@@ -152,6 +152,11 @@ func (r *TaskWorkloadReconciler) workloadToJob(taskWorkload *korifiv1alpha1.Task
 			Completions:             tools.PtrTo(int32(1)),
 			TTLSecondsAfterFinished: tools.PtrTo(int32(r.jobTTL.Seconds())),
 			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"sidecar.istio.io/inject": "false",
+					},
+				},
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
 					SecurityContext: &corev1.PodSecurityContext{

@@ -1,23 +1,38 @@
-apiVersion: projectcontour.io/v1
-kind: HTTPProxy
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
 metadata:
-  labels:
-    app: korifi-api
-  name: korifi-api-proxy
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Release.namespace }}
+  name: korifi-api-gateway
 spec:
-  routes:
-  - conditions:
-    - prefix: /
-    services:
-    - name: korifi-api-svc
-      port: 443
-      validation:
-        caSecret: korifi-api-internal-cert
-        subjectName: korifi-api-svc.{{ .Release.Namespace }}.svc.cluster.local
-    timeoutPolicy:
-      response: 5m
-  virtualhost:
-    fqdn: {{ .Values.apiServer.url }}
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    hosts:
+    - {{ .Values.apiServer.url }}
     tls:
-      secretName: korifi-api-ingress-cert
+      mode: PASSTHROUGH
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  namespace: {{ .Release.namespace }}
+  name: korifi-api
+spec:
+  hosts:
+  - {{ .Values.apiServer.url }}
+  gateways:
+  - korifi-api-gateway
+  tls:
+  - match:
+    - port: 443
+      sniHosts:
+      - {{ .Values.apiServer.url }}
+    route:
+    - destination:
+        host: korifi-api-svc
+        port:
+          number: 443
